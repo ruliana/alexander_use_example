@@ -41,7 +41,7 @@ get '/teste.xml' do
 end
 
 get '/teste.xsl' do
-  builder do |xsl|
+  result = builder do |xsl|
     xsl.instruct!
     xsl.xsl :stylesheet, version: "1.0", :"xmlns:xsl" => "http://www.w3.org/1999/XSL/Transform" do |s|
       s.xsl :output, method: "html", indent: "yes"
@@ -59,4 +59,6 @@ get '/teste.xsl' do
       end
     end
   end
+
+  [200, {"Content-type" => "application/xslt+xml"}, result]
 end
