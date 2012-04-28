@@ -1,11 +1,39 @@
 require 'sinatra'
-require 'builder'
 require 'sinatra/reloader'
+require 'builder'
+require 'nokogiri'
+
+def get_url(url)
+  self.call(
+    'REQUEST_METHOD' => 'GET',
+    'PATH_INFO' => url,
+    'rack.input' => StringIO.new
+  )[2].join('')
+end
+
+def get_xml(url)
+  Nokogiri::XML(get_url(url))
+end
+
+def get_xsl(url)
+  Nokogiri::XSLT(get_url(url))
+end
+
+get '/teste.html' do
+  xml = get_xml("/teste.xml")
+  processing_instruction = xml.children[0].to_s
+  if processing_instruction =~ /^<\?xml-stylesheet /
+    xsl_path = processing_instruction.match(/href="([^"]+)"/)[1]
+    get_xsl(xsl_path).transform(xml).to_xml
+  else
+    [200, {"Content-type" => "application/xml"}, xml.to_xml]
+  end
+end
 
 get '/teste.xml' do
   builder do |xml|
     xml.instruct!
-    xml.instruct! :"xml-stylesheet", type: "text/xsl", href: "teste.xsl"
+    xml.instruct! :"xml-stylesheet", type: "text/xsl", href: "/teste.xsl"
     xml.teste do
       xml.wakka "Ronie"
     end
