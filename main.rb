@@ -1,8 +1,8 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'builder'
-require 'nokogiri'
-require 'useragent'
+require_relative './lib/xml_to_html.rb'
+use XmlToHtml
 
 def get_url(url)
   self.call(

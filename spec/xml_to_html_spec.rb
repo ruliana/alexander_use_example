@@ -8,15 +8,15 @@ class DummyApp
   attr_accessor :xml, :xsl
 
   def initialize
-    self.xml = [
-      200, {"Content-type" => "application/xml"}, <<-XML
+    self.xml = Rack::MockResponse.new(
+      200, {"Content-Type" => "application/xml;charset=utf-8"}, [<<-XML
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="teste.xsl"?>
 <root />
       XML
-    ]
-    self.xsl = [
-      200, {"Content-type" => "application/xslt+xml"}, <<-XSL
+    ])
+    self.xsl = Rack::MockResponse.new(
+      200, {"Content-type" => "application/xslt+xml"}, [<<-XSL
 <?xml version="1.0" encoding="utf-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:template match="/">
@@ -24,7 +24,7 @@ class DummyApp
   </xsl:template>
 </xsl:stylesheet>
       XSL
-    ]
+    ])
   end
 
   def call(env)
@@ -60,36 +60,36 @@ describe XmlToHtml do
 
   describe "when response is NOT XML" do
     it "should pass the response as is" do
-      @dummy_app.xml = [200, {"Content-type" => "text/html"}, "<html></html>"]
-      response = @filter.call(env_with_chrome)
-      response.must_equal @dummy_app.xml
+      @dummy_app.xml = Rack::MockResponse.new(200, {"Content-type" => "text/html"}, ["<html></html>"])
+      status, headers,response = @filter.call(env_with_chrome)
+      response.body.must_equal @dummy_app.xml.body
     end
   end
 
   describe "when response is XML" do
     describe "when request came from a XSLT enable browser" do
       it "should let response as is" do
-        response = @filter.call(env_with_chrome)
-        response.must_equal @dummy_app.xml
+        status, headers, response = @filter.call(env_with_chrome)
+        response.body.must_equal @dummy_app.xml.body
       end
     end
     describe "when request came from a XSLT NOT enable browser" do
       it "should parse XML to HTML" do
-        response = @filter.call(env_with_firefox)
-        response[0].must_equal 200
-        response[1]["Content-type"].must_equal "text/html"
-        response[2].must_equal "<html><body></body></html>\n"
+        status, headers, response = @filter.call(env_with_firefox)
+        status.must_equal 200
+        headers["Content-type"].must_equal "text/html"
+        response.body.must_equal ["<html><body></body></html>\n"]
       end
     end
     describe "when response is a XML without stylesheet" do
       it "should let response as is" do
-        @dummy_app.xml = [200, {"Content-type" => "application/xml"}, <<-XML
+        @dummy_app.xml = Rack::MockResponse.new(200, {"Content-type" => "application/xml"}, [<<-XML
 <?xml version="1.0" encoding="utf-8"?>
 <root />
         XML
-        ]
-        response = @filter.call(env_with_firefox)
-        response.must_equal @dummy_app.xml
+        ])
+        status, header, response = @filter.call(env_with_firefox)
+        response.body.must_equal @dummy_app.xml.body
       end
     end
   end

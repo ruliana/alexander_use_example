@@ -18,20 +18,20 @@ class XmlToHtml
   end
 
   def call(env)
-    status, headers, response = @app.call(env)
+    status, headers, body = @app.call(env)
 
-    return [status, headers, response] unless xml?(headers)
-    return [status, headers, response] if xlst_enable_browser?(env)
+    return [status, headers, body] unless xml?(headers)
+    return [status, headers, body] if xlst_enable_browser?(env)
 
-    html_response = to_html(env, response)
-    return [status, headers, response] unless html_response
+    html_response = to_html(env, body)
+    return [status, headers, body] unless html_response
 
     headers["Content-type"] = "text/html"
-    [status, headers, html_response]
+    Rack::Response.new([html_response], status, headers).finish
   end
 
   def xml?(headers)
-    headers["Content-type"] == "application/xml"
+    headers["Content-Type"] =~ /\bapplication\/xml\b/
   end
 
   def xlst_enable_browser?(env)
@@ -40,7 +40,8 @@ class XmlToHtml
     XSLT_ENABLE_BROWSERS.detect { |browser| user_agent >= browser }
   end
 
-  def to_html(env, xml)
+  def to_html(env, body)
+    xml = body_to_string(body)
     xslt_request = detect_xslt_processing_instruction(xml)
     return unless xslt_request
 
@@ -53,12 +54,19 @@ class XmlToHtml
     return unless status == 200
 
     xml_parsed = Nokogiri::XML(xml)
-    xsl_parsed = Nokogiri::XSLT(xslt)
+    xsl_parsed = Nokogiri::XSLT(body_to_string(xslt))
     xsl_parsed.transform(xml_parsed).to_s
   end
 
   def detect_xslt_processing_instruction(xml)
     match = xml.match(/<\?xml-stylesheet.*href="([^"]+)"/)
     return match[1] if match
+  end
+
+  def body_to_string(body)
+    result = ""
+    body.each { |it| result << it }
+    body.close if body.respond_to? :close
+    result
   end
 end
