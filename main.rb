@@ -2,6 +2,7 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'builder'
 require 'nokogiri'
+require 'useragent'
 
 def get_url(url)
   self.call(
@@ -61,4 +62,10 @@ get '/teste.xsl' do
   end
 
   [200, {"Content-type" => "application/xslt+xml"}, result]
+end
+
+get "/*" do
+  headers["Content-type"] = "text/plain"
+  agent = UserAgent.parse(env["HTTP_USER_AGENT"])
+  "#{env.inspect}\n\n#{env["HTTP_USER_AGENT"]}\n#{agent.browser} #{agent.version}"
 end

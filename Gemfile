@@ -5,4 +5,13 @@ gem 'sinatra'
 gem 'sinatra-contrib'
 gem 'builder'
 gem 'nokogiri'
-gem 'reloader'
+gem 'useragent'
+
+group :development do
+  gem 'reloader'
+  gem 'minitest'
+  gem 'minitest-colorize'
+  gem 'minitest-matchers'
+  gem 'guard'
+  gem 'guard-minitest'
+end
