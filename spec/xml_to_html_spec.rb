@@ -1,3 +1,5 @@
+require 'simplecov'
+SimpleCov.start
 require 'minitest/autorun'
 require 'minitest/colorize'
 require_relative '../lib/xml_to_html'
@@ -10,9 +12,7 @@ class DummyApp
       200, {"Content-type" => "application/xml"}, <<-XML
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="teste.xsl"?>
-<root>
-  <field>Something</field>
-</root>
+<root />
       XML
     ]
     self.xsl = [
@@ -49,13 +49,6 @@ describe XmlToHtml do
     {"HTTP_USER_AGENT" => FIREFOX_1}
   end
 
-  def xml_sample(xsl_template = nil)
-    result = %{<?xml version="1.0" encoding="utf-8"?>\n}
-    result << %{<?xml-stylesheet type="text/xsl" href="#{xsl_template}"?>\n} if xsl_template
-    result << %{<root />}
-    result
-  end
-
   before do
     @dummy_app = DummyApp.new
     @filter = XmlToHtml.new(@dummy_app)
@@ -63,27 +56,6 @@ describe XmlToHtml do
 
   def app
     @filter
-  end
-
-  it "should identify a XSLT enable browser" do
-    env = {"HTTP_USER_AGENT" => CHROME_18}
-    @filter.xlst_enable_browser?(env).wont_be_nil
-  end
-
-  it "should identify a NON XSLT enable browser" do
-    env = {"HTTP_USER_AGENT" => FIREFOX_1}
-    @filter.xlst_enable_browser?(env).must_be_nil
-  end
-
-  it "should extract xsl template" do
-    template = @filter.detect_xslt_processing_instruction(xml_sample("teste.xsl"))
-    template.must_equal "teste.xsl"
-
-    template = @filter.detect_xslt_processing_instruction(xml_sample("/teste/sbruble/teste.xsl"))
-    template.must_equal "/teste/sbruble/teste.xsl"
-
-    template = @filter.detect_xslt_processing_instruction(xml_sample(nil))
-    template.must_be_nil
   end
 
   describe "when response is NOT XML" do
@@ -107,6 +79,17 @@ describe XmlToHtml do
         response[0].must_equal 200
         response[1]["Content-type"].must_equal "text/html"
         response[2].must_equal "<html><body></body></html>\n"
+      end
+    end
+    describe "when response is a XML without stylesheet" do
+      it "should let response as is" do
+        @dummy_app.xml = [200, {"Content-type" => "application/xml"}, <<-XML
+<?xml version="1.0" encoding="utf-8"?>
+<root />
+        XML
+        ]
+        response = @filter.call(env_with_firefox)
+        response.must_equal @dummy_app.xml
       end
     end
   end

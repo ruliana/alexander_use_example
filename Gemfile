@@ -14,4 +14,5 @@ group :development do
   gem 'minitest-matchers'
   gem 'guard'
   gem 'guard-minitest'
+  gem 'simplecov'
 end
