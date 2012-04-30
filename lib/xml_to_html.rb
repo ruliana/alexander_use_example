@@ -20,17 +20,14 @@ class XmlToHtml
   def call(env)
     status, headers, response = @app.call(env)
 
-    if xml?(headers) && !xlst_enable_browser?(env)
-      html_response = to_html(env, response)
-      if html_response.nil?
-        [status, headers, response]
-      else
-        headers["Content-type"] = "text/html"
-        [status, headers, html_response]
-      end
-    else
-      [status, headers, response]
-    end
+    return [status, headers, response] unless xml?(headers)
+    return [status, headers, response] if xlst_enable_browser?(env)
+
+    html_response = to_html(env, response)
+    return [status, headers, response] unless html_response
+
+    headers["Content-type"] = "text/html"
+    [status, headers, html_response]
   end
 
   def xml?(headers)
