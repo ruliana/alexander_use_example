@@ -1,35 +1,10 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'builder'
-require_relative './lib/xml_to_html.rb'
-use XmlToHtml
-
-def get_url(url)
-  self.call(
-    'REQUEST_METHOD' => 'GET',
-    'PATH_INFO' => url,
-    'rack.input' => StringIO.new
-  )[2].join('')
-end
-
-def get_xml(url)
-  Nokogiri::XML(get_url(url))
-end
-
-def get_xsl(url)
-  Nokogiri::XSLT(get_url(url))
-end
-
-get '/teste.html' do
-  xml = get_xml("/teste.xml")
-  processing_instruction = xml.children[0].to_s
-  if processing_instruction =~ /^<\?xml-stylesheet /
-    xsl_path = processing_instruction.match(/href="([^"]+)"/)[1]
-    get_xsl(xsl_path).transform(xml).to_xml
-  else
-    [200, {"Content-type" => "application/xml"}, xml.to_xml]
-  end
-end
+require 'alexander'
+use Rack::Lint
+use Alexander::XslProcessor
+use Rack::Lint
 
 get '/teste.xml' do
   builder do |xml|
@@ -61,7 +36,7 @@ get '/teste.xsl' do
     end
   end
 
-  [200, {"Content-type" => "application/xslt+xml"}, result]
+  Rack::Response.new([result], 200, {"Content-Type" => "application/xslt+xml"})
 end
 
 get "/*" do
